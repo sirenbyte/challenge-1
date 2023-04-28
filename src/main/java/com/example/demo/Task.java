@@ -1,11 +1,7 @@
 package com.example.demo;
 
-import ch.qos.logback.classic.Level;
-import ch.qos.logback.classic.LoggerContext;
 import org.apache.beam.sdk.Pipeline;
 import org.apache.beam.sdk.io.TextIO;
-import org.apache.beam.sdk.options.Default;
-import org.apache.beam.sdk.options.Description;
 import org.apache.beam.sdk.options.PipelineOptions;
 import org.apache.beam.sdk.options.PipelineOptionsFactory;
 import org.apache.beam.sdk.schemas.JavaFieldSchema;
@@ -14,35 +10,17 @@ import org.apache.beam.sdk.schemas.annotations.SchemaCreate;
 import org.apache.beam.sdk.transforms.*;
 import org.apache.beam.sdk.values.KV;
 import org.apache.beam.sdk.values.PCollection;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import static org.apache.beam.sdk.values.TypeDescriptors.*;
 
 public class Task {
-    public interface WordCountOptions extends PipelineOptions {
-        @Description("Path of the file to read from")
-        @Default.String("input.csv")
-        String getInputFile();
-
-        void setInputFile(String value);
-
-        @Description("Path of the file to write to")
-        @Default.String("output.csv")
-        String getOutput();
-
-        void setOutput(String value);
-    }
-
     public static void main(String[] args) {
-        LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
-        loggerContext.getLogger("org.apache.beam").setLevel(Level.ERROR);
-        PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(WordCountOptions.class);
+        PipelineOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().create();
         options.setTempLocation("input.csv");
         runChallenge(options);
     }
@@ -84,7 +62,6 @@ public class Task {
                 .apply("Highest average rating and least 2 reviews", TextIO.write().to("4-challenge_result"));
 
 
-
         // 6) Calculate the average rating given by each user.
         PCollection<KV<Integer, Double>> averageRating = reviewPCollection
                 .apply(MapElements.into(kvs(integers(), integers())).via(review -> KV.of(review.userId, review.rating)))
@@ -96,11 +73,10 @@ public class Task {
                 .apply("Average rating by user", TextIO.write().to("6-challenge_result"));
 
 
-
         // 7) Find the top 5 most generous users (users with the highest average ratings).
         averageRating
                 .apply(Top.of(5, (a, b) -> a.getValue().compareTo(b.getValue())))
-                .apply(MapElements.into(strings()).via(reviewList-> reviewList.stream().map(review->review.getKey()+" "+review.getValue()).collect(Collectors.joining("\n"))))
+                .apply(MapElements.into(strings()).via(reviewList -> reviewList.stream().map(review -> review.getKey() + " " + review.getValue()).collect(Collectors.joining("\n"))))
                 .apply("Top 5 highest average ratings", TextIO.write().to("7-challenge_result"));
 
 
@@ -125,9 +101,8 @@ public class Task {
         // 10) Identify the top 5 movies with the longest reviews on average.
         averageWordEachReview
                 .apply(Top.of(5, (a, b) -> a.getValue().compareTo(b.getValue())))
-                .apply(MapElements.into(strings()).via(reviewList-> reviewList.stream().map(review->review.getKey()+" "+review.getValue()).collect(Collectors.joining("\n"))))
+                .apply(MapElements.into(strings()).via(reviewList -> reviewList.stream().map(review -> review.getKey() + " " + review.getValue()).collect(Collectors.joining("\n"))))
                 .apply("Top 5 longest review", TextIO.write().to("10-challenge_result"));
-
 
 
         // 11) Determine the distribution of ratings
